@@ -113,8 +113,8 @@
           <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2 text-sm">
             <span v-if="analyzing">🌀 AI 辨識中 (正在壓縮與分析)...</span>
             <span v-else>📷 上傳/拍照進貨單</span>
-    <!-- ✅ 正確的寫法（請改成這樣）： -->
-<input type="file" accept="image/*" @change="handleImageUpload" :disabled="analyzing" class="hidden" ref="fileInput">
+    <!-- 移除 image/* 改用具體副檔名，手機就不會強制開啟相機 -->
+<input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png" @change="handleImageUpload" :disabled="analyzing" class="hidden">
         </div>
       </div>
 
