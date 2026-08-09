@@ -113,8 +113,9 @@
           <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2 text-sm">
             <span v-if="analyzing">🌀 AI 辨識中 (正在壓縮與分析)...</span>
             <span v-else>📷 上傳/拍照進貨單</span>
-    <!-- 移除 image/* 改用具體副檔名，手機就不會強制開啟相機 -->
-<input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png" @change="handleImageUpload" :disabled="analyzing" class="hidden">
+            <!-- 指定具體副檔名以避免某些手機強制啟動相機 -->
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png" @change="handleImageUpload" :disabled="analyzing" class="hidden">
+          </label>
         </div>
       </div>
 
@@ -788,6 +789,32 @@
 
           analyzing.value = true;
 
+          // 整理一份包含「名稱 + 別稱」的清單給 AI 看
+          const herbNameList = rawHerbData.map(h => h.alias ? `${h.name}(別名:${h.alias})` : h.name).join('、');
+
+          // 將升級版 Prompt 作為參數傳給 GAS
+          const promptText = `
+請分析這張中藥進貨單/標籤照片，並精準提取所有的藥材項目。
+
+【可參考的藥材清單】：
+${herbNameList}
+
+【重要規則與注意事項】：
+1. **多效期拆分**：如果同一種藥材出現多個不同的「有效日期」或「批號」，請務必【拆分成多筆獨立資料】輸出，絕不能合併成一筆！
+2. **別稱自動對照轉換**：單據上的藥名若為別名（例如：川歸/當歸、云苓/茯苓、官桂/肉桂、淮山/山藥等），請參考上述清單統一轉換為對應的「標準藥材名稱」。
+3. **數量與單位**：請精準提取數量。
+4. **有效日期格式**：請統一轉換為 YYYY-MM-DD 格式（若無則回傳空字串）。
+
+請嚴格只回傳 JSON 格式陣列，格式如下：
+[
+  {
+    "name": "藥材標準名稱",
+    "qty": 1,
+    "expDate": "YYYY-MM-DD"
+  }
+]
+`;
+
           compressImage(file, 1200, 0.7, async (base64Image) => {
             try {
               const pureBase64 = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
@@ -795,7 +822,11 @@
               const res = await fetch(GAS_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ action: 'analyze_image', image: pureBase64 })
+                body: JSON.stringify({ 
+                  action: 'analyze_image', 
+                  image: pureBase64,
+                  prompt: promptText
+                })
               });
 
               const result = await res.json();
@@ -811,6 +842,7 @@
                 result.data.forEach(item => {
                   if (!item.name) return;
 
+                  // 比對標準名稱與別名
                   const target = rawHerbData.find(h => 
                     h.name === item.name || 
                     (h.alias && h.alias.includes(item.name)) || 
