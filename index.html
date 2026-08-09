@@ -1,304 +1,1077 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
-  <base target="_top">
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>明細紀錄</title>
+  <title>藥材櫃位庫存管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- 引入手繪感字型 (Caveat) -->
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background-color: #f4f6f9;
-      margin: 0;
-      padding: 15px;
-      color: #333;
-    }
-
-    /* 頂部標題與類型選單列 */
-    .header-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .header-title {
-      font-size: 1.4rem;
-      font-weight: bold;
-      color: #1a252f;
-      margin: 0;
-    }
-
-    /* 下拉選單通用樣式 */
-    .custom-select {
-      padding: 6px 12px;
-      font-size: 0.95rem;
-      border: 1.5px solid #007bff;
-      border-radius: 6px;
-      background-color: #fff;
-      color: #007bff;
-      font-weight: bold;
-      outline: none;
-      cursor: pointer;
-    }
-
-    /* 時間篩選列 */
-    .time-filter-bar {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 20px;
-      background: #ffffff;
-      padding: 10px 14px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    .time-filter-bar label {
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: #555;
-    }
-
-    /* 紀錄卡片列表區 */
-    .records-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    /* 單日紀錄區塊（手繪草圖樣式） */
-    .date-group-card {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    /* 左側日期標示 */
-    .date-label {
-      min-width: 45px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: #d9534f; /* 手繪紅字質感 */
-      padding-top: 8px;
-      text-align: right;
-    }
-
-    /* 右側品項外框卡片 */
-    .items-container {
-      flex: 1;
-      background: #ffffff;
-      border: 1.5px solid #2c3e50; /* 比照手繪外框 */
-      border-radius: 12px;
-      padding: 12px 16px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-    }
-
-    /* 單一藥材品項列 */
-    .item-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px dashed #e2e8f0;
-    }
-
-    .item-row:last-child {
-      border-bottom: none;
-    }
-
-    .item-main {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .item-name {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #2d3748;
-    }
-
-    /* 類型標籤 (進/出/盤) */
-    .type-badge {
-      font-size: 0.75rem;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: bold;
-    }
-    .badge-進貨 { background-color: #e6f4ea; color: #137333; }
-    .badge-出貨 { background-color: #fce8e6; color: #c5221f; }
-    .badge-盤點 { background-color: #fef7e0; color: #b06000; }
-
-    .item-sub-info {
-      font-size: 0.85rem;
-      color: #718096;
-      margin-top: 2px;
-    }
-
-    .item-qty {
-      font-size: 1.05rem;
-      font-weight: bold;
-      color: #2b6cb0;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px;
-      color: #a0aec0;
-      font-size: 0.95rem;
+    .font-hand {
+      font-family: 'Caveat', 'Noto Sans TC', cursive, sans-serif;
     }
   </style>
 </head>
-<body>
+<body class="bg-amber-50/40 p-3 md:p-6 min-h-screen">
+  <div id="app" class="max-w-7xl mx-auto">
+    
+    <!-- 頂部頁籤 -->
+    <div class="flex border-b border-gray-300 mb-6 bg-white rounded-t-xl shadow-sm">
+      <button @click="currentTab = 'overview'" :class="['px-6 py-3.5 font-bold transition-all', currentTab === 'overview' ? 'border-b-2 border-emerald-600 text-emerald-600 bg-emerald-50/50' : 'text-gray-500 hover:text-gray-700']">
+        📦 庫存總覽與查詢
+      </button>
+      <button @click="currentTab = 'log'" :class="['px-6 py-3.5 font-bold transition-all', currentTab === 'log' ? 'border-b-2 border-emerald-600 text-emerald-600 bg-emerald-50/50' : 'text-gray-500 hover:text-gray-700']">
+        📝 庫存異動登記（進/出/盤點）
+      </button>
+      <button @click="currentTab = 'history'; fetchLogs()" :class="['px-6 py-3.5 font-bold transition-all flex items-center gap-2', currentTab === 'history' ? 'border-b-2 border-emerald-600 text-emerald-600 bg-emerald-50/50' : 'text-gray-500 hover:text-gray-700']">
+        📜 歷史異動明細
+        <span v-if="loading" class="animate-spin text-xs">🌀</span>
+      </button>
+    </div>
 
-  <!-- 1. 頂部標題與選擇更動方式 (進/出/盤) -->
-  <div class="header-bar">
-    <h2 class="header-title">明細紀錄</h2>
-    <select id="actionTypeFilter" class="custom-select" onchange="filterAndRender()">
-      <option value="ALL">選單 (全部)</option>
-      <option value="進貨">進貨</option>
-      <option value="出貨">出貨</option>
-      <option value="盤點">盤點</option>
-    </select>
-  </div>
+    <!-- TAB 1: 庫存總覽 -->
+    <div v-if="currentTab === 'overview'" class="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-slate-50 p-4 rounded-lg border">
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">🔍 關鍵字搜尋（藥名/別稱/儲位）</label>
+          <input type="text" v-model="searchKeyword" placeholder="如：薤白、久白、1-1..." class="border p-2 rounded w-full bg-white focus:ring-2 focus:ring-emerald-400">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">🗄️ 區域/櫃位篩選</label>
+          <select v-model="selectedCabinet" class="border p-2 rounded w-full bg-white focus:ring-2 focus:ring-emerald-400 font-medium">
+            <option value="ALL">🌐 全部櫃位 (所有藥材)</option>
+            <optgroup label="📦 常規藥櫃 (1~17櫃)">
+              <option v-for="n in 17" :key="n" :value="n.toString()">第 {{ n }} 櫃</option>
+            </optgroup>
+            <optgroup label="🌿 特殊儲位">
+              <option value="G">G 櫃（草類）</option>
+              <option value="R">R 櫃（冷藏類）</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <label class="flex items-center gap-2 cursor-pointer bg-amber-50 border border-amber-200 p-2.5 rounded-lg w-full">
+            <input type="checkbox" v-model="onlyLowStock" class="w-4 h-4 text-amber-600 rounded">
+            <span class="text-xs font-bold text-amber-800">⚠️ 僅顯示庫存警告品項 (≤ 5)</span>
+          </label>
+        </div>
+      </div>
 
-  <!-- 2. 時間選單 -->
-  <div class="time-filter-bar">
-    <label for="timeFilter">時間：</label>
-    <select id="timeFilter" class="custom-select" style="border-color: #6c757d; color: #333;" onchange="filterAndRender()">
-      <option value="ALL">全部時間</option>
-      <!-- JS 會根據資料自動填入所有出現過的日期 -->
-    </select>
-  </div>
+      <div class="flex justify-between items-center mb-4 text-sm text-gray-600 font-medium">
+        <span>顯示品項：<strong class="text-emerald-700">{{ filteredInventory.length }}</strong> / {{ rawHerbData.length }} 項</span>
+        <button @click="fetchLogs" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded transition">🔄 重新同步雲端資料</button>
+      </div>
 
-  <!-- 3. 按日期劃分的內容顯示區 -->
-  <div id="recordsContainer" class="records-list">
-    <!-- JS 會動態渲染至此 -->
+      <div class="overflow-x-auto border rounded-lg">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-100 text-slate-700 text-sm border-b">
+              <th class="p-2.5 w-20 text-center">儲位</th>
+              <th class="p-2.5 w-48">藥材名稱 / 別稱</th>
+              <th class="p-2.5 w-32 text-right">當前庫存</th>
+              <th class="p-2.5 text-center">有效期限與批次</th>
+              <th class="p-2.5 w-24 text-center">狀態</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 text-sm">
+            <tr v-for="item in filteredInventory" :key="item.location + item.name" class="hover:bg-slate-50 transition">
+              <td class="p-2.5 text-center font-mono font-bold text-slate-600 bg-slate-50/50">{{ item.location }}</td>
+              <td class="p-2.5">
+                <div class="font-bold text-gray-900 leading-tight text-base">{{ item.name }}</div>
+                <div v-if="item.alias" class="text-[11px] text-gray-400 leading-tight mt-0.5">({{ item.alias }})</div>
+              </td>
+              <td class="p-2.5 text-right font-mono font-bold text-base" :class="item.currentQty <= 5 ? 'text-red-600' : 'text-slate-800'">
+                {{ item.currentQty }} <span class="text-xs text-gray-400 font-normal">件</span>
+              </td>
+              <td class="p-2.5 text-center font-mono">
+                <div v-if="item.expList && item.expList.length > 0" class="flex flex-wrap justify-center gap-1.5">
+                  <span v-for="exp in item.expList" :key="exp.rawDate" :class="getExpStatusClass(exp.rawDate)" class="px-2.5 py-1 rounded-md font-bold text-sm shadow-sm inline-block">
+                    {{ exp.formattedText }}
+                  </span>
+                </div>
+                <span v-else class="text-gray-300">-</span>
+              </td>
+              <td class="p-2.5 text-center">
+                <span v-if="item.currentQty <= 5" class="bg-red-100 text-red-700 text-xs px-2.5 py-1 rounded-full font-bold">⚠️ 低庫存</span>
+                <span v-else class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">正常</span>
+              </td>
+            </tr>
+            <tr v-if="filteredInventory.length === 0">
+              <td colspan="5" class="p-8 text-center text-gray-400">查無符合條件的藥材資料</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 2: 庫存異動登記（含 AI 辨識 & 多效期支援） -->
+    <div v-if="currentTab === 'log'" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+      
+      <!-- AI 貨單辨識區塊 -->
+      <div class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h3 class="font-bold text-indigo-900 flex items-center gap-1.5 text-base">
+            ✨ AI 貨單/標籤自動辨識（自動對照同義詞/別名）
+          </h3>
+          <p class="text-xs text-indigo-700 mt-1">拍照上傳進貨單，AI 會自動將別名（如「久白」）轉換為系統名稱（如「薤白」）並帶入！</p>
+        </div>
+        <div>
+          <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2 text-sm">
+            <span v-if="analyzing">🌀 AI 辨識與比對中...</span>
+            <span v-else>📷 上傳/拍照進貨單</span>
+            <input type="file" accept="image/*" capture="environment" @change="handleImageUpload" :disabled="analyzing" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <!-- 頂部參數設定列 -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">📅 異動日期</label>
+          <input type="date" v-model="logFormHeader.date" class="w-full border rounded-lg p-2 text-sm bg-white font-medium text-gray-700">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">🏷️ 異動類型</label>
+          <select v-model="logFormHeader.type" class="w-full border rounded-lg p-2 text-sm bg-white font-bold" :class="{
+            'text-emerald-600': logFormHeader.type === '進貨',
+            'text-rose-600': logFormHeader.type === '出庫',
+            'text-amber-600': logFormHeader.type === '盤點'
+          }">
+            <option value="進貨">➕ 進貨 (庫存增加)</option>
+            <option value="出庫">➖ 出庫 (庫存減少)</option>
+            <option value="盤點">⚖️ 盤點 (覆蓋現有庫存)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">👤 經手人</label>
+          <input type="text" v-model="logFormHeader.operator" placeholder="請輸入姓名" class="w-full border rounded-lg p-2 text-sm bg-white">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 mb-1">📝 備註 / 原因</label>
+          <input type="text" v-model="logFormHeader.note" placeholder="如：廠商補貨、調劑損耗" class="w-full border rounded-lg p-2 text-sm bg-white">
+        </div>
+      </div>
+
+      <!-- 搜尋與藥材卡片區塊 -->
+      <div class="border rounded-xl p-4 bg-gray-50/50">
+        
+        <div v-if="hasRecognizedItems" class="mb-4 p-3 bg-indigo-100/70 border border-indigo-300 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div class="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
+            🔍 AI 已成功轉換並帶入資料！目前開啟核對模式（共 {{ recognizedCount }} 項）
+          </div>
+          <button @click="onlyRecognized = !onlyRecognized" class="text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded transition">
+            {{ onlyRecognized ? '🌐 切換為：顯示全部藥材' : '🎯 切換為：僅顯示辨識項目' }}
+          </button>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-xs font-bold text-gray-600 mb-1">🔍 搜尋要異動的藥材</label>
+          <input type="text" v-model="cardSearchKeyword" placeholder="輸入藥名或儲位..." class="w-full border rounded-lg p-2.5 bg-white text-sm focus:ring-2 focus:ring-emerald-400">
+        </div>
+
+        <div class="max-h-[550px] overflow-y-auto pr-1">
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            
+            <div v-for="item in cardFilteredInventory" :key="item.location + item.name" 
+                 class="bg-white border rounded-xl p-3 shadow-sm flex flex-col justify-between hover:border-emerald-300 transition" 
+                 :class="{'border-indigo-400 bg-indigo-50/20': getItemTotalQty(item.location + '|' + item.name) > 0}">
+              
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <div class="text-xs font-mono font-bold text-gray-400">{{ item.location }}</div>
+                  <div class="font-bold text-slate-800 text-base leading-tight">{{ item.name }}</div>
+                  <div class="text-[11px] text-gray-400 mt-0.5">目前庫存：{{ item.currentQty }}</div>
+                </div>
+                <button @click="addBatchRow(item.location + '|' + item.name)" class="text-[11px] bg-slate-100 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200 transition">
+                  + 新增效期
+                </button>
+              </div>
+
+              <div class="space-y-2 pt-2 border-t border-dashed border-gray-200">
+                <div v-for="(row, idx) in getItemBatches(item.location + '|' + item.name)" :key="idx" class="flex items-center gap-2 bg-slate-50/70 p-1.5 rounded-lg border border-gray-100">
+                  <div class="w-20">
+                    <input type="number" min="0" placeholder="數量" v-model.number="row.qty" class="w-full border rounded p-1 text-center font-bold text-slate-800 focus:ring-1 focus:ring-emerald-400 text-sm">
+                  </div>
+                  <div class="flex-1">
+                    <input type="date" v-model="row.expDate" class="w-full border rounded p-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-emerald-400">
+                  </div>
+                  <button v-if="getItemBatches(item.location + '|' + item.name).length > 1" @click="removeBatchRow(item.location + '|' + item.name, idx)" class="text-gray-400 hover:text-red-500 font-bold px-1 text-xs">
+                    ❌
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div v-if="cardFilteredInventory.length === 0" class="col-span-full text-center py-8 text-gray-400">
+              查無符合條件的藥材項目
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button @click="submitBatchLogs" :disabled="submitting" class="w-full mt-6 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white font-bold py-3.5 rounded-xl shadow-md transition text-base">
+        {{ submitting ? '資料發送中...' : '送出異動單（同步至雲端）' }}
+      </button>
+    </div>
+
+    <!-- TAB 3: 歷史異動明細 (手繪手帳風) -->
+    <div v-if="currentTab === 'history'" class="bg-[#fffdf9] p-6 rounded-2xl shadow-md border-2 border-amber-900/20 relative">
+      
+      <!-- 手繪風頂部標題與篩選列 -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b-2 border-dashed border-amber-900/20">
+        <div>
+          <h2 class="text-2xl font-bold text-amber-900 flex items-center gap-2">
+            📖 異動明細紀錄
+          </h2>
+          <p class="text-xs text-amber-800/70 mt-0.5">依照日期精簡檢視各品項進出狀況（共 {{ dbLogs.length }} 筆紀錄）</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <!-- 上方選單：進/出/盤點 -->
+          <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-amber-900/20 shadow-sm">
+            <span class="text-xs font-bold text-amber-900">選單：</span>
+            <select v-model="historyFilterType" class="text-sm bg-transparent font-bold text-amber-900 outline-none cursor-pointer">
+              <option value="ALL">全部類型 (進/出/盤)</option>
+              <option value="進貨">進貨</option>
+              <option value="出庫">出庫 / 出貨</option>
+              <option value="盤點">盤點 / 盤點修正</option>
+            </select>
+          </div>
+
+          <!-- 下方選取：日期篩選 -->
+          <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-amber-900/20 shadow-sm">
+            <span class="text-xs font-bold text-amber-900">時間：</span>
+            <select v-model="historyFilterDate" class="text-sm bg-transparent font-bold text-amber-900 outline-none cursor-pointer">
+              <option value="ALL">全部日期</option>
+              <option v-for="d in availableDates" :key="d" :value="d">{{ d }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 手繪風群組顯示區塊 (依照日期分類) -->
+      <div class="space-y-6">
+        <div v-for="(group, dateStr) in groupedLogs" :key="dateStr" class="relative">
+          
+          <!-- 日期標籤 -->
+          <div class="inline-block bg-amber-800 text-amber-50 px-4 py-1 rounded-full text-lg font-bold font-mono shadow-sm mb-3">
+            📅 {{ dateStr }}
+          </div>
+
+          <!-- 仿手繪方框容器 -->
+          <div class="bg-white border-2 border-amber-900/30 rounded-2xl p-4 shadow-sm space-y-2">
+            <div v-for="log in group" :key="log.id" class="flex flex-wrap items-center p-2.5 hover:bg-amber-50/60 rounded-xl border border-transparent hover:border-amber-900/10 transition gap-x-6 gap-y-2">
+              
+              <!-- 左側：品項、儲位與數量 -->
+              <div class="flex items-center gap-3">
+                <!-- 類型小標籤 -->
+                <span :class="{
+                  'bg-emerald-100 text-emerald-800 border-emerald-300': log.type === '進貨',
+                  'bg-rose-100 text-rose-800 border-rose-300': log.type === '出庫' || log.type === '出貨',
+                  'bg-amber-100 text-amber-800 border-amber-300': log.type === '盤點' || log.type === '盤點修正'
+                }" class="px-2 py-0.5 rounded-md text-xs font-bold border">
+                  {{ log.type }}
+                </span>
+                
+                <span class="font-mono text-xs font-bold text-amber-800 bg-amber-100/60 px-2 py-0.5 rounded">[{{ log.location }}]</span>
+                
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-slate-800 text-base">{{ log.name }}</span>
+                  <span class="font-mono font-bold text-sm px-2 py-0.5 rounded" :class="{
+                    'text-emerald-700 bg-emerald-50': log.type === '進貨',
+                    'text-rose-700 bg-rose-50': log.type === '出庫' || log.type === '出貨',
+                    'text-amber-700 bg-amber-50': log.type === '盤點' || log.type === '盤點修正'
+                  }">
+                    {{ log.type === '進貨' ? '+' : ((log.type === '出庫' || log.type === '出貨') ? '-' : '') }}{{ log.qty }} 件
+                  </span>
+                </div>
+              </div>
+
+              <!-- 右側：效期、經手人與刪除 -->
+              <div class="flex items-center gap-3">
+                <span v-if="log.expDate" class="text-xs text-slate-600 font-mono bg-slate-100 px-2 py-1 rounded">
+                  效期: {{ log.expDate }}
+                </span>
+
+                <span class="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
+                  {{ log.operator ? `👤 ${log.operator}` : '' }} {{ log.note ? `| ${log.note}` : '' }}
+                </span>
+
+                <button @click="deleteLog(log.id)" class="text-xs text-rose-500 hover:text-rose-700 font-bold px-2 py-1 hover:bg-rose-50 rounded transition">
+                  刪除
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 若無資料 -->
+        <div v-if="Object.keys(groupedLogs).length === 0" class="text-center py-12 text-amber-900/40 font-bold text-base">
+          沒有找到符合條件的歷史異動紀錄
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
   <script>
-    // 部署後的 Google Apps Script Web App URL
-    const GAS_API_URL = "YOUR_GAS_WEB_APP_URL"; 
-    
-    // 全域變數保存原始數據
-    let rawRecords = [];
+    const { createApp, ref, reactive, computed, onMounted } = Vue;
 
-    // 頁面載入時自動抓取資料
-    window.onload = function() {
-      fetchRecords();
-    };
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyJ6TEGGeRl-KV3CyU-dPuOf-7R7hsQmpObmC901AvsAcLuGmLGRitWNqf4Kla0_MJTtQ/exec';
 
-    // 從 GAS 抓取歷史紀錄
-    function fetchRecords() {
-      fetch(GAS_API_URL)
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            rawRecords = data;
-            populateTimeDropdown();
-            filterAndRender();
+    const rawHerbData = [
+      { location: "1-1", name: "薤白", alias: "久白" },
+      { location: "1-2", name: "地骨皮", alias: "" },
+      { location: "1-3", name: "澤漆", alias: "" },
+      { location: "1-4", name: "蓮藕", alias: "" },
+      { location: "1-5", name: "桑椹子", alias: "" },
+      { location: "1-6", name: "沙苑子", alias: "沙苑蒺藜" },
+      { location: "1-7", name: "磁石", alias: "" },
+      { location: "1-8", name: "夜交藤", alias: "" },
+      { location: "1-9", name: "桑枝", alias: "" },
+      { location: "1-10", name: "亞麻仁", alias: "" },
+      { location: "1-11", name: "荊芥", alias: "" },
+      { location: "1-12", name: "浙貝母", alias: "" },
+      { location: "2-1", name: "冬瓜子", alias: "" },
+      { location: "2-2", name: "刺蒺藜", alias: "" },
+      { location: "2-3", name: "懷牛膝", alias: "淮七" },
+      { location: "2-4", name: "枇杷葉", alias: "" },
+      { location: "2-5", name: "獨活", alias: "" },
+      { location: "2-6", name: "北沙蔘", alias: "沙蔘節" },
+      { location: "2-7", name: "防己", alias: "" },
+      { location: "2-8", name: "天花粉", alias: "栝蔞根" },
+      { location: "2-9", name: "火麻仁", alias: "" },
+      { location: "2-10", name: "龜板", alias: "" },
+      { location: "2-11", name: "鎖陽", alias: "" },
+      { location: "2-12", name: "玄參", alias: "元參" },
+      { location: "3-1", name: "佛手柑", alias: "" },
+      { location: "3-2", name: "蒲黃", alias: "" },
+      { location: "3-3", name: "青皮", alias: "" },
+      { location: "3-4", name: "野葛根", alias: "" },
+      { location: "3-5", name: "川七", alias: "田七片.三七片" },
+      { location: "3-6", name: "熟地黃", alias: "" },
+      { location: "3-7", name: "王不留行", alias: "" },
+      { location: "3-8", name: "吳茱萸", alias: "" },
+      { location: "3-9", name: "雞血藤", alias: "血藤片" },
+      { location: "3-10", name: "桂枝", alias: "" },
+      { location: "3-11", name: "黨參", alias: "" },
+      { location: "3-12", name: "炒白朮", alias: "碎白朮" },
+      { location: "4-1", name: "黑梔子", alias: "" },
+      { location: "4-2", name: "葶藶子", alias: "丁力子" },
+      { location: "4-3", name: "蒼朮", alias: "" },
+      { location: "4-4", name: "黃柏", alias: "" },
+      { location: "4-5", name: "陳皮", alias: "" },
+      { location: "4-6", name: "何首烏", alias: "" },
+      { location: "4-7", name: "小薊", alias: "" },
+      { location: "4-8", name: "蒼耳子", alias: "" },
+      { location: "4-9", name: "梔子", alias: "山支子" },
+      { location: "4-10", name: "生白朮", alias: "白朮片" },
+      { location: "4-11", name: "甘草", alias: "梁外散草片" },
+      { location: "4-12", name: "茯苓", alias: "" },
+      { location: "5-1", name: "高良薑", alias: "" },
+      { location: "5-2", name: "栝樓仁", alias: "榧仁" },
+      { location: "5-3", name: "辛夷", alias: "" },
+      { location: "5-4", name: "丹參", alias: "" },
+      { location: "5-5", name: "炒白芍", alias: "" },
+      { location: "5-6", name: "決明子", alias: "炒草決" },
+      { location: "5-7", name: "蘆根", alias: "" },
+      { location: "5-8", name: "地龍", alias: "" },
+      { location: "5-9", name: "花椒", alias: "" },
+      { location: "5-10", name: "珍珠母", alias: "" },
+      { location: "5-11", name: "山藥", alias: "懷山藥.淮山片.蘇淮片" },
+      { location: "5-12", name: "杜仲", alias: "" },
+      { location: "6-1", name: "白頭翁", alias: "" },
+      { location: "6-2", name: "枳殼", alias: "" },
+      { location: "6-3", name: "厚朴", alias: "" },
+      { location: "6-4", name: "牡蠣", alias: "" },
+      { location: "6-5", name: "生地黃", alias: "" },
+      { location: "6-6", name: "川芎", alias: "" },
+      { location: "6-7", name: "狗脊", alias: "金狗毛" },
+      { location: "6-8", name: "枳實", alias: "" },
+      { location: "6-9", name: "黃連", alias: "" },
+      { location: "6-10", name: "一條根", alias: "千斤拔" },
+      { location: "6-11", name: "生白芍", alias: "" },
+      { location: "6-12", name: "牡丹皮", alias: "銅陵鳳丹皮" },
+      { location: "7-1", name: "射干", alias: "" },
+      { location: "7-2", name: "代赭石", alias: "" },
+      { location: "7-3", name: "木香", alias: "" },
+      { location: "7-4", name: "赤芍", alias: "" },
+      { location: "7-5", name: "女貞子", alias: "" },
+      { location: "7-6", name: "莪朮", alias: "" },
+      { location: "7-7", name: "海金砂", alias: "" },
+      { location: "7-8", name: "丁香", alias: "" },
+      { location: "7-9", name: "覆盆子", alias: "" },
+      { location: "7-10", name: "知母", alias: "" },
+      { location: "7-11", name: "柴胡", alias: "" },
+      { location: "7-12", name: "三稜", alias: "三稜片" },
+      { location: "8-1", name: "絲瓜絡", alias: "" },
+      { location: "8-2", name: "川烏", alias: "" },
+      { location: "8-3", name: "砂仁", alias: "" },
+      { location: "8-4", name: "香附", alias: "" },
+      { location: "8-5", name: "炒麥芽", alias: "" },
+      { location: "8-6", name: "菟絲子", alias: "" },
+      { location: "8-7", name: "炮薑", alias: "" },
+      { location: "8-8", name: "扁柏", alias: "" },
+      { location: "8-9", name: "遠志", alias: "" },
+      { location: "8-10", name: "防風", alias: "" },
+      { location: "8-11", name: "石決明", alias: "" },
+      { location: "8-12", name: "鬱金", alias: "白乙金片" },
+      { location: "9-1", name: "川楝子", alias: "" },
+      { location: "9-2", name: "藁本", alias: "" },
+      { location: "9-3", name: "檳榔", alias: "" },
+      { location: "9-4", name: "蔓荊子", alias: "" },
+      { location: "9-5", name: "葛花", alias: "" },
+      { location: "9-6", name: "白笈", alias: "" },
+      { location: "9-7", name: "虎杖", alias: "" },
+      { location: "9-8", name: "萆薢", alias: "粉萆薢片" },
+      { location: "9-9", name: "土茯苓", alias: "" },
+      { location: "9-10", name: "北茵陳", alias: "牛至" },
+      { location: "9-11", name: "白茅根", alias: "" },
+      { location: "9-12", name: "旋覆花", alias: "" },
+      { location: "10-1", name: "威靈仙", alias: "" },
+      { location: "10-2", name: "乳香", alias: "" },
+      { location: "10-3", name: "沒藥", alias: "" },
+      { location: "10-4", name: "青箱子", alias: "青霜子" },
+      { location: "10-5", name: "牛蒡子", alias: "大力子" },
+      { location: "10-6", name: "黑艾葉", alias: "艾葉炭" },
+      { location: "10-7", name: "北板藍根", alias: "" },
+      { location: "10-8", name: "芙蓉頭", alias: "" },
+      { location: "10-9", name: "竹茹", alias: "" },
+      { location: "10-10", name: "淫羊藿", alias: "" },
+      { location: "10-11", name: "豬苓", alias: "" },
+      { location: "10-12", name: "黑荊芥", alias: "荊芥炭" },
+      { location: "11-1", name: "海桐皮", alias: "" },
+      { location: "11-2", name: "前胡", alias: "" },
+      { location: "11-3", name: "雞內金", alias: "" },
+      { location: "11-4", name: "烏藥", alias: "" },
+      { location: "11-5", name: "紫石英", alias: "" },
+      { location: "11-6", name: "黑蒲黃", alias: "" },
+      { location: "11-7", name: "白芷", alias: "" },
+      { location: "11-8", name: "小金英", alias: "" },
+      { location: "11-9", name: "白芥子", alias: "" },
+      { location: "11-10", name: "蛇床子", alias: "" },
+      { location: "11-11", name: "鱉甲", alias: "" },
+      { location: "11-12", name: "穀芽", alias: "" },
+      { location: "12-1", name: "九層塔頭", alias: "" },
+      { location: "12-2", name: "石斛", alias: "" },
+      { location: "12-3", name: "茯神", alias: "" },
+      { location: "12-4", name: "百合", alias: "" },
+      { location: "12-5", name: "大腹皮", alias: "" },
+      { location: "12-6", name: "訶子", alias: "" },
+      { location: "12-7", name: "桑寄生", alias: "" },
+      { location: "12-8", name: "石膏", alias: "" },
+      { location: "12-9", name: "細辛", alias: "" },
+      { location: "12-10", name: "大黃", alias: "" },
+      { location: "12-11", name: "紅花", alias: "" },
+      { location: "12-12", name: "小茴香", alias: "" },
+      { location: "13-1", name: "續斷", alias: "" },
+      { location: "13-2", name: "連翹", alias: "" },
+      { location: "13-3", name: "牛奶埔", alias: "" },
+      { location: "13-4", name: "五味子", alias: "" },
+      { location: "13-5", name: "白鮮皮", alias: "" },
+      { location: "13-6", name: "木賊", alias: "" },
+      { location: "13-7", name: "骨碎補", alias: "" },
+      { location: "13-8", name: "龍骨", alias: "" },
+      { location: "13-9", name: "大金英", alias: "" },
+      { location: "13-10", name: "炮附子", alias: "" },
+      { location: "13-11", name: "桑白皮", alias: "" },
+      { location: "13-12", name: "海風藤", alias: "" },
+      { location: "14-1", name: "黃芩", alias: "" },
+      { location: "14-2", name: "刺五加", alias: "" },
+      { location: "14-3", name: "金銀花", alias: "" },
+      { location: "14-4", name: "鉤藤", alias: "" },
+      { location: "14-5", name: "海螵蛸", alias: "" },
+      { location: "14-6", name: "胖大海", alias: "" },
+      { location: "14-7", name: "川牛膝", alias: "" },
+      { location: "14-8", name: "桔梗", alias: "" },
+      { location: "14-9", name: "桃仁", alias: "" },
+      { location: "14-10", name: "羌活", alias: "" },
+      { location: "14-11", name: "巴戟天", alias: "" },
+      { location: "14-12", name: "石菖蒲", alias: "" },
+      { location: "15-1", name: "半夏", alias: "" },
+      { location: "15-2", name: "木瓜", alias: "" },
+      { location: "15-3", name: "肉桂", alias: "" },
+      { location: "15-4", name: "地膚子", alias: "" },
+      { location: "15-5", name: "白豆蔻", alias: "" },
+      { location: "15-6", name: "栝樓實", alias: "" },
+      { location: "15-7", name: "劉寄奴", alias: "" },
+      { location: "15-8", name: "車前子", alias: "" },
+      { location: "15-9", name: "合歡皮", alias: "" },
+      { location: "15-10", name: "木通", alias: "" },
+      { location: "15-11", name: "白椿根", alias: "" },
+      { location: "15-12", name: "苦參根", alias: "" },
+      { location: "16-1", name: "倒地蜈蚣", alias: "" },
+      { location: "16-2", name: "青蒿", alias: "" },
+      { location: "16-3", name: "茜草", alias: "" },
+      { location: "16-4", name: "澤蘭", alias: "" },
+      { location: "16-5", name: "滑石", alias: "" },
+      { location: "16-6", name: "草豆蔻", alias: "" },
+      { location: "16-7", name: "升麻", alias: "" },
+      { location: "16-8", name: "皂角刺", alias: "" },
+      { location: "16-9", name: "紫菀", alias: "" },
+      { location: "16-10", name: "赤小豆", alias: "" },
+      { location: "16-11", name: "薑黃", alias: "" },
+      { location: "16-12", name: "血竭", alias: "" },
+      { location: "17-1", name: "肉桂子", alias: "" },
+      { location: "17-2", name: "秦艽", alias: "" },
+      { location: "17-3", name: "益智仁", alias: "" },
+      { location: "17-4", name: "炒白芥子", alias: "" },
+      { location: "17-5", name: "酒大黃", alias: "" },
+      { location: "17-6", name: "鹿角霜", alias: "" },
+      { location: "17-7", name: "紫蘇子", alias: "" },
+      { location: "17-8", name: "桂花", alias: "" },
+      { location: "17-9", name: "神曲", alias: "" },
+      { location: "17-10", name: "羅漢果", alias: "" },
+      { location: "17-11", name: "生杜仲", alias: "" },
+      { location: "17-12", name: "草果", alias: "" },
+      { location: "17-13", name: "乾薑", alias: "" },
+      { location: "17-14", name: "椿根白皮", alias: "" },
+      { location: "17-15", name: "商陸", alias: "" },
+      { location: "17-16", name: "青鹽", alias: "" },
+      { location: "17-17", name: "粉葛", alias: "" },
+      { location: "G-1", name: "玉米鬚", alias: "" },
+      { location: "G-2", name: "旱蓮草", alias: "" },
+      { location: "G-3", name: "甜菊葉", alias: "" },
+      { location: "G-4", name: "艾葉", alias: "" },
+      { location: "G-5", name: "藿香", alias: "" },
+      { location: "G-6", name: "款冬花", alias: "" },
+      { location: "G-7", name: "大風草", alias: "" },
+      { location: "G-8", name: "仙鶴草", alias: "" },
+      { location: "G-9", name: "半枝蓮", alias: "" },
+      { location: "G-10", name: "生薑", alias: "" },
+      { location: "G-11", name: "密蒙花", alias: "" },
+      { location: "G-12", name: "透骨草", alias: "" },
+      { location: "G-13", name: "綿茵陳", alias: "" },
+      { location: "G-14", name: "夏枯草", alias: "" },
+      { location: "G-15", name: "薄荷", alias: "" },
+      { location: "G-16", name: "銀杏葉", alias: "" },
+      { location: "G-17", name: "洛神花", alias: "" },
+      { location: "G-18", name: "伸筋草", alias: "" },
+      { location: "G-19", name: "鵝不食草", alias: "" },
+      { location: "G-20", name: "益母草", alias: "" },
+      { location: "G-21", name: "夏枯花", alias: "" },
+      { location: "G-22", name: "白花蛇舌草", alias: "" },
+      { location: "G-23", name: "山茶根", alias: "" },
+      { location: "G-24", name: "化石草", alias: "" },
+      { location: "G-25", name: "荷葉", alias: "" },
+      { location: "G-26", name: "故紙花", alias: "" },
+      { location: "G-27", name: "燈心草", alias: "" },
+      { location: "G-28", name: "麻黃", alias: "" },
+      { location: "G-29", name: "含殼草", alias: "" },
+      { location: "G-30", name: "蒲公英", alias: "" },
+      { location: "G-31", name: "蟬退(金蟬)", alias: "" },
+      { location: "G-32", name: "淡竹葉", alias: "" },
+      { location: "G-33", name: "忍冬藤", alias: "" },
+      { location: "G-34", name: "絡石藤", alias: "" },
+      { location: "G-35", name: "金錢草", alias: "" },
+      { location: "G-36", name: "紫參(石見穿)", alias: "" },
+      { location: "G-37", name: "桑葉", alias: "" },
+      { location: "G-38", name: "鬼箭", alias: "" },
+      { location: "G-39", name: "山豆根", alias: "" },
+      { location: "G-40", name: "魚腥草", alias: "" },
+      { location: "G-41", name: "紫花地丁", alias: "" },
+      { location: "G-42", name: "狗尾草", alias: "" },
+      { location: "G-43", name: "路路通", alias: "" },
+      { location: "G-44", name: "通草", alias: "" },
+      { location: "G-45", name: "紫蘇", alias: "" },
+      { location: "G-46", name: "敗醬草", alias: "" },
+      { location: "G-47", name: "紫蘇梗", alias: "" },
+      { location: "G-48", name: "抹草", alias: "" },
+      { location: "G-49", name: "凌霄花", alias: "" },
+      { location: "G-50", name: "大青葉", alias: "" },
+      { location: "G-51", name: "龍膽草", alias: "" },
+      { location: "G-52", name: "甘遂", alias: "" },
+      { location: "G-53", name: "佩蘭", alias: "" },
+      { location: "G-54", name: "紫草", alias: "" },
+      { location: "G-55", name: "柳枝黃", alias: "" },
+      { location: "G-56", name: "鼠尾黃", alias: "" },
+      { location: "G-57", name: "大丁黃", alias: "" },
+      { location: "G-58", name: "虎咬黃", alias: "" },
+      { location: "G-59", name: "茶匙廣", alias: "" },
+      { location: "R-1", name: "核桃", alias: "" },
+      { location: "R-2", name: "白扁豆", alias: "" },
+      { location: "R-3", name: "郁李仁", alias: "" },
+      { location: "R-4", name: "柏子仁", alias: "" },
+      { location: "R-5", name: "烏梅", alias: "" },
+      { location: "R-6", name: "太子蔘", alias: "" },
+      { location: "R-7", name: "浮小麥", alias: "" },
+      { location: "R-8", name: "龜鹿膠", alias: "" },
+      { location: "R-9", name: "天麻", alias: "" },
+      { location: "R-10", name: "玉竹", alias: "" },
+      { location: "R-11", name: "肉蓯蓉", alias: "" },
+      { location: "R-12", name: "枸杞", alias: "" },
+      { location: "R-13", name: "酸棗仁", alias: "" },
+      { location: "R-14", name: "薏苡仁", alias: "" },
+      { location: "R-15", name: "白果(2)", alias: "" },
+      { location: "R-16", name: "黃耆", alias: "" },
+      { location: "R-17", name: "天門冬", alias: "" },
+      { location: "R-18", name: "杏仁", alias: "" },
+      { location: "R-19", name: "蜈蚣", alias: "" },
+      { location: "R-20", name: "高麗蔘片", alias: "" },
+      { location: "R-21", name: "粉光蔘片", alias: "" },
+      { location: "R-22", name: "龜鹿四珍膠", alias: "" },
+      { location: "R-23", name: "蓮子", alias: "" },
+      { location: "R-24", name: "芡實", alias: "" },
+      { location: "R-25", name: "炙甘草", alias: "" },
+      { location: "R-26", name: "山楂", alias: "" },
+      { location: "R-27", name: "黑豆", alias: "" },
+      { location: "R-28", name: "黑棗", alias: "" },
+      { location: "R-29", name: "西藏紅花", alias: "" },
+      { location: "R-30", name: "五靈脂(1)", alias: "" },
+      { location: "R-31", name: "殭蠶(1)", alias: "" },
+      { location: "R-32", name: "蛤蚧", alias: "" },
+      { location: "R-33", name: "槐花(1)", alias: "" },
+      { location: "R-34", name: "鹿茸", alias: "" },
+      { location: "R-35", name: "東洋蔘", alias: "" },
+      { location: "R-36", name: "北雲人蔘", alias: "" },
+      { location: "R-37", name: "麥門冬", alias: "" },
+      { location: "R-38", name: "白蔘", alias: "" },
+      { location: "R-39", name: "山茱萸", alias: "" },
+      { location: "R-40", name: "補骨脂", alias: "" },
+      { location: "R-41", name: "澤瀉", alias: "" },
+      { location: "R-42", name: "龍眼肉", alias: "" },
+      { location: "R-43", name: "菊花(10)", alias: "" },
+      { location: "R-44", name: "黃精", alias: "" },
+      { location: "R-45", name: "珠貝(1)", alias: "" },
+      { location: "R-46", name: "玫瑰花", alias: "" },
+      { location: "R-47", name: "炙黃耆", alias: "" },
+      { location: "R-48", name: "蓮鬚", alias: "" },
+      { location: "R-49", name: "韓高麗蔘20支", alias: "" },
+      { location: "R-50", name: "人蔘鬚(1)", alias: "" },
+      { location: "R-51", name: "當歸", alias: "" },
+      { location: "R-52", name: "當歸尾", alias: "" },
+      { location: "R-53", name: "無籽紅棗", alias: "" },
+      { location: "R-54", name: "紅棗", alias: "" },
+      { location: "R-55", name: "延胡索", alias: "" },
+      { location: "R-56", name: "蓮子心", alias: "" },
+      { location: "R-57", name: "麥芽糖", alias: "" },
+      { location: "R-58", name: "紅棗切片", alias: "" },
+      { location: "R-59", name: "海馬", alias: "" },
+      { location: "R-60", name: "山茱萸(酒)", alias: "" },
+      { location: "R-61", name: "綠豆", alias: "" },
+      { location: "R-62", name: "全蠍", alias: "" }
+    ];
+
+    function compressImage(file, maxWidth, quality, callback) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          var canvas = document.createElement('canvas');
+          var width = img.width;
+          var height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
           }
-        })
-        .catch(err => console.error("抓取失敗:", err));
+
+          canvas.width = width;
+          canvas.height = height;
+
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          var base64 = canvas.toDataURL('image/jpeg', quality).split(',')[1];
+          callback(base64);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     }
 
-    // 動態填入「時間選單」選項（取出不重複的日期）
-    function populateTimeDropdown() {
-      const timeSelect = document.getElementById("timeFilter");
-      timeSelect.innerHTML = '<option value="ALL">全部時間</option>';
-      
-      // 收集所有日期
-      const dates = [...new Set(rawRecords.map(item => item.date))].filter(Boolean);
-      dates.sort((a, b) => new Date(b) - new Date(a)); // 依日期降序排列
+    createApp({
+      setup() {
+        const currentTab = ref('overview');
+        const searchKeyword = ref('');
+        const selectedCabinet = ref('ALL');
+        const onlyLowStock = ref(false);
 
-      dates.forEach(d => {
-        const opt = document.createElement("option");
-        opt.value = d;
-        opt.textContent = d;
-        timeSelect.appendChild(opt);
-      });
-    }
+        const logFormHeader = reactive({
+          date: new Date().toISOString().split('T')[0],
+          type: '進貨',
+          operator: '',
+          note: ''
+        });
+        const cardSearchKeyword = ref('');
+        const onlyRecognized = ref(false);
 
-    // 篩選數據並渲染畫面
-    function filterAndRender() {
-      const selectedType = document.getElementById("actionTypeFilter").value;
-      const selectedTime = document.getElementById("timeFilter").value;
-      const container = document.getElementById("recordsContainer");
+        const itemBatchInputs = reactive({});
 
-      // 1. 條件過濾
-      let filtered = rawRecords.filter(item => {
-        const typeMatch = (selectedType === "ALL") || (item.type === selectedType);
-        const timeMatch = (selectedTime === "ALL") || (item.date === selectedTime);
-        return typeMatch && timeMatch;
-      });
+        const dbLogs = ref([]);
+        const loading = ref(false);
+        const submitting = ref(false);
+        const analyzing = ref(false);
 
-      if (filtered.length === 0) {
-        container.innerHTML = '<div class="empty-state">尚無符合條件的紀錄</div>';
-        return;
-      }
+        // 歷史頁面篩選狀態
+        const historyFilterType = ref('ALL');
+        const historyFilterDate = ref('ALL');
 
-      // 2. 按「日期」進行分組 (Group by Date)
-      const groupedData = {};
-      filtered.forEach(item => {
-        const d = item.date || "未知日期";
-        if (!groupedData[d]) groupedData[d] = [];
-        groupedData[d].push(item);
-      });
-
-      // 3. 生成手繪草圖的 HTML 結構
-      let html = '';
-      
-      // 將日期降序排列（最新日期在最上面）
-      Object.keys(groupedData).sort((a, b) => new Date(b) - new Date(a)).forEach(dateStr => {
-        // 格式化日期顯示（例如：把 "2026-08-04" 轉成簡短的 "8/4"）
-        let shortDate = dateStr;
-        if (dateStr.includes('-')) {
-          const parts = dateStr.split('-');
-          if (parts.length === 3) {
-            shortDate = `${parseInt(parts[1])}/${parseInt(parts[2])}`;
-          }
-        }
-
-        html += `
-          <div class="date-group-card">
-            <!-- 左側日期 -->
-            <div class="date-label">${shortDate}</div>
-            
-            <!-- 右側品項框（A, B, C, D, E） -->
-            <div class="items-container">
-        `;
-
-        // 填入該日期下的所有藥材品項
-        groupedData[dateStr].forEach(item => {
-          html += `
-            <div class="item-row">
-              <div>
-                <div class="item-main">
-                  <span class="item-name">${item.name}</span>
-                  <span class="type-badge badge-${item.type}">${item.type}</span>
-                </div>
-                <div class="item-sub-info">
-                  ${item.location ? `儲位: ${item.location} | ` : ''}
-                  ${item.expDate ? `效期: ${item.expDate}` : ''}
-                  ${item.operator ? ` | 經手: ${item.operator}` : ''}
-                </div>
-              </div>
-              <div class="item-qty">
-                ${item.qty} 包
-              </div>
-            </div>
-          `;
+        // 取得所有曾出現過的日期清單
+        const availableDates = computed(() => {
+          const dates = dbLogs.value.map(log => log.date || log.timestamp).filter(Boolean);
+          return [...new Set(dates)].sort((a, b) => new Date(b) - new Date(a));
         });
 
-        html += `
-            </div>
-          </div>
-        `;
-      });
+        // 根據篩選條件過濾並依照日期分組
+        const groupedLogs = computed(() => {
+          let filtered = dbLogs.value.filter(log => {
+            const logType = log.type || '';
+            const logDate = log.date || log.timestamp || '';
 
-      container.innerHTML = html;
-    }
+            // 類型篩選
+            if (historyFilterType.value !== 'ALL') {
+              if (historyFilterType.value === '出庫' && !logType.includes('出')) return false;
+              if (historyFilterType.value === '盤點' && !logType.includes('盤')) return false;
+              if (historyFilterType.value === '進貨' && logType !== '進貨') return false;
+            }
+
+            // 日期篩選
+            if (historyFilterDate.value !== 'ALL' && logDate !== historyFilterDate.value) {
+              return false;
+            }
+
+            return true;
+          });
+
+          // 依照日期群組 (Date -> Array of logs)
+          const groups = {};
+          filtered.forEach(log => {
+            const d = log.date || log.timestamp || '未分類日期';
+            if (!groups[d]) groups[d] = [];
+            groups[d].push(log);
+          });
+
+          return groups;
+        });
+
+        const getItemBatches = (key) => {
+          if (!itemBatchInputs[key]) {
+            itemBatchInputs[key] = [{ qty: null, expDate: '' }];
+          }
+          return itemBatchInputs[key];
+        };
+
+        const addBatchRow = (key) => {
+          const batches = getItemBatches(key);
+          batches.push({ qty: null, expDate: '' });
+        };
+
+        const removeBatchRow = (key, index) => {
+          const batches = getItemBatches(key);
+          if (batches.length > 1) {
+            batches.splice(index, 1);
+          }
+        };
+
+        const getItemTotalQty = (key) => {
+          const batches = itemBatchInputs[key];
+          if (!batches) return 0;
+          return batches.reduce((sum, b) => sum + (Number(b.qty) || 0), 0);
+        };
+
+        const inventoryList = computed(() => {
+          return rawHerbData.map(herb => {
+            let totalQty = 0;
+            const expBatchMap = {};
+
+            const herbLogs = dbLogs.value.filter(log => log.name === herb.name && log.location === herb.location);
+
+            herbLogs.forEach(log => {
+              const logQty = Number(log.qty) || 0;
+              const rawExp = log.expDate ? log.expDate.trim() : '未填效期';
+
+              if (log.type === '進貨') {
+                totalQty += logQty;
+                expBatchMap[rawExp] = (expBatchMap[rawExp] || 0) + logQty;
+              } else if (log.type === '出庫' || log.type === '出貨') {
+                totalQty -= logQty;
+                let deductQty = logQty;
+
+                const sortedExpKeys = Object.keys(expBatchMap).sort((a, b) => {
+                  if (a === '未填效期') return 1;
+                  if (b === '未填效期') return -1;
+                  return new Date(a) - new Date(b);
+                });
+
+                for (const expKey of sortedExpKeys) {
+                  if (deductQty <= 0) break;
+                  const currentExpQty = expBatchMap[expKey];
+                  if (currentExpQty > 0) {
+                    if (currentExpQty >= deductQty) {
+                      expBatchMap[expKey] -= deductQty;
+                      deductQty = 0;
+                    } else {
+                      deductQty -= currentExpQty;
+                      expBatchMap[expKey] = 0;
+                    }
+                  }
+                }
+              } else if (log.type === '盤點' || log.type === '盤點修正') {
+                totalQty = logQty;
+                Object.keys(expBatchMap).forEach(k => expBatchMap[k] = 0);
+                expBatchMap[rawExp] = logQty;
+              }
+            });
+
+            const expList = [];
+            const sortedExpKeys = Object.keys(expBatchMap).sort((a, b) => {
+              if (a === '未填效期') return 1;
+              if (b === '未填效期') return -1;
+              return new Date(a) - new Date(b);
+            });
+
+            sortedExpKeys.forEach(expKey => {
+              const batchQty = expBatchMap[expKey];
+              if (batchQty > 0) {
+                let cleanDate = expKey;
+                if (expKey !== '未填效期') {
+                  cleanDate = expKey.replace(/-/g, '');
+                }
+                
+                expList.push({
+                  rawDate: expKey,
+                  formattedText: `${cleanDate}*${batchQty}`
+                });
+              }
+            });
+
+            return { 
+              ...herb, 
+              currentQty: totalQty < 0 ? 0 : totalQty, 
+              expList: expList
+            };
+          });
+        });
+
+        const getExpStatusClass = (expDateStr) => {
+          if (!expDateStr || expDateStr === '未填效期') return 'bg-gray-100 text-gray-600';
+          const today = new Date();
+          const expDate = new Date(expDateStr);
+          const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+
+          if (diffDays < 0) return 'bg-red-100 text-red-700 font-bold';
+          if (diffDays <= 30) return 'bg-amber-100 text-amber-800 font-bold';
+          return 'bg-slate-100 text-slate-700 border border-slate-200';
+        };
+
+        const filteredInventory = computed(() => {
+          return inventoryList.value.filter(item => {
+            const matchKw = !searchKeyword.value || 
+                            item.name.includes(searchKeyword.value) || 
+                            item.alias.includes(searchKeyword.value) || 
+                            item.location.toLowerCase().includes(searchKeyword.value.toLowerCase());
+            
+            let matchCab = true;
+            if (selectedCabinet.value !== 'ALL') {
+              if (selectedCabinet.value === 'G') matchCab = item.location.startsWith('G');
+              else if (selectedCabinet.value === 'R') matchCab = item.location.startsWith('R');
+              else matchCab = (item.location.split('-')[0] === selectedCabinet.value);
+            }
+
+            const matchLow = !onlyLowStock.value || item.currentQty <= 5;
+            return matchKw && matchCab && matchLow;
+          });
+        });
+
+        const hasRecognizedItems = computed(() => {
+          return Object.keys(itemBatchInputs).some(key => getItemTotalQty(key) > 0);
+        });
+
+        const recognizedCount = computed(() => {
+          return Object.keys(itemBatchInputs).filter(key => getItemTotalQty(key) > 0).length;
+        });
+
+        const cardFilteredInventory = computed(() => {
+          return inventoryList.value.filter(item => {
+            const key = item.location + '|' + item.name;
+            
+            if (onlyRecognized.value) {
+              if (getItemTotalQty(key) <= 0) return false;
+            }
+
+            if (cardSearchKeyword.value) {
+              const kw = cardSearchKeyword.value.toLowerCase();
+              const matchKw = item.name.includes(kw) || 
+                              item.alias.includes(kw) || 
+                              item.location.toLowerCase().includes(kw);
+              if (!matchKw) return false;
+            }
+
+            return true;
+          });
+        });
+
+        const fetchLogs = async () => {
+          if (!GAS_URL) return;
+          loading.value = true;
+          try {
+            const res = await fetch(GAS_URL);
+            dbLogs.value = await res.json();
+          } catch (err) { 
+            alert('連線雲端資料庫失敗！'); 
+          } finally { 
+            loading.value = false; 
+          }
+        };
+
+        const handleImageUpload = (event) => {
+          const file = event.target.files[0];
+          if (!file) return;
+
+          analyzing.value = true;
+
+          const autoDict = {};
+          rawHerbData.forEach(herb => {
+            if (herb.alias) {
+              const aliases = herb.alias.split(/[.、,]/);
+              aliases.forEach(a => {
+                const cleanA = a.trim();
+                if (cleanA) autoDict[cleanA] = herb.name;
+              });
+            }
+          });
+
+          compressImage(file, 1600, 0.85, async (base64Image) => {
+            try {
+              const res = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ 
+                  action: 'analyze_image', 
+                  image: base64Image,
+                  dictionary: autoDict 
+                })
+              });
+              
+              const result = await res.json();
+
+              if (result.error || result.status === 'error') {
+                alert('Gemini AI 辨識失敗：\n' + JSON.stringify(result.message || result.error));
+                return;
+              }
+
+              if (result.status === 'success' && result.data && result.data.length > 0) {
+                let matchedCount = 0;
+                
+                result.data.forEach(item => {
+                  if (!item.name) return;
+                  
+                  const cleanAiName = item.name.replace(/\(.*\)/g, '').replace(/（.*）/g, '').trim();
+
+                  const matchedHerb = rawHerbData.find(h => {
+                    const cleanHerbName = h.name.replace(/\(.*\)/g, '').replace(/（.*）/g, '').trim();
+                    return cleanHerbName === cleanAiName ||
+                           cleanHerbName.includes(cleanAiName) || 
+                           cleanAiName.includes(cleanHerbName) ||
+                           (h.alias && h.alias.includes(cleanAiName));
+                  });
+
+                  if (matchedHerb) {
+                    const key = matchedHerb.location + '|' + matchedHerb.name;
+                    
+                    if (!itemBatchInputs[key] || (itemBatchInputs[key].length === 1 && !itemBatchInputs[key][0].qty)) {
+                      itemBatchInputs[key] = [{ qty: item.qty, expDate: item.expDate || '' }];
+                    } else {
+                      itemBatchInputs[key].push({ qty: item.qty, expDate: item.expDate || '' });
+                    }
+                    matchedCount++;
+                  }
+                });
+
+                if (matchedCount > 0) {
+                  onlyRecognized.value = true;
+                } else {
+                  alert('AI 有辨識出文字（' + result.data.map(d => d.name).join(', ') + '），但與系統內的藥材名稱無法完全對應，請檢查藥名或手動填寫。');
+                }
+              } else {
+                alert('AI 未能成功辨識單據內容，請確保照片光線充足、文字清晰且平整。');
+              }
+            } catch (err) {
+              console.error(err);
+              alert('辨識過程發生連線錯誤：\n' + (err.message || err));
+            } finally {
+              analyzing.value = false;
+              event.target.value = '';
+            }
+          });
+        };
+
+        const submitBatchLogs = async () => {
+          const newEntries = [];
+          
+          for (const key in itemBatchInputs) {
+            const batches = itemBatchInputs[key];
+            const [loc, name] = key.split('|');
+
+            batches.forEach(b => {
+              const qty = Number(b.qty);
+              if (qty && qty > 0) {
+                newEntries.push({
+                  id: 'INV_' + Date.now() + '_' + Math.floor(Math.random()*10000),
+                  date: logFormHeader.date,
+                  type: logFormHeader.type,
+                  location: loc,
+                  name: name,
+                  qty: qty,
+                  expDate: b.expDate || '',
+                  operator: logFormHeader.operator.trim(),
+                  note: logFormHeader.note.trim()
+                });
+              }
+            });
+          }
+
+          if (newEntries.length === 0) {
+            return alert('請至少在一個藥材右側輸入數量！');
+          }
+
+          submitting.value = true;
+          try {
+            await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'add', data: newEntries }) });
+            
+            for (const key in itemBatchInputs) {
+              itemBatchInputs[key] = [{ qty: null, expDate: '' }];
+            }
+            logFormHeader.note = '';
+            onlyRecognized.value = false;
+            
+            alert(`成功發送 ${newEntries.length} 筆異動紀錄！`);
+            await fetchLogs();
+            currentTab.value = 'overview';
+          } catch (err) { 
+            alert('傳送失敗！'); 
+          } finally { 
+            submitting.value = false; 
+          }
+        };
+
+        const deleteLog = async (id) => {
+          if (confirm('確定要刪除這筆異動紀錄嗎？')) {
+            dbLogs.value = dbLogs.value.filter(log => log.id !== id);
+            await fetch(GAS_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id: id }) });
+          }
+        };
+
+        onMounted(() => { fetchLogs(); });
+
+        return {
+          currentTab, searchKeyword, selectedCabinet, onlyLowStock,
+          logFormHeader, cardSearchKeyword, cardFilteredInventory,
+          onlyRecognized, hasRecognizedItems, recognizedCount,
+          getItemBatches, addBatchRow, removeBatchRow, getItemTotalQty,
+          dbLogs, loading, submitting, analyzing, rawHerbData,
+          inventoryList, filteredInventory, fetchLogs, submitBatchLogs, deleteLog, getExpStatusClass, handleImageUpload,
+          historyFilterType, historyFilterDate, availableDates, groupedLogs
+        };
+      }
+    }).mount('#app');
   </script>
 </body>
 </html>
