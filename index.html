@@ -115,13 +115,13 @@
           <h3 class="font-bold text-indigo-900 flex items-center gap-1.5 text-base">
             ✨ AI 貨單/標籤自動辨識（自動對照同義詞/別名）
           </h3>
-          <p class="text-xs text-indigo-700 mt-1">拍照上傳進貨單，AI 會自動將別名（如「久白」）轉換為系統名稱（如「薤白」）並帶入！</p>
+          <p class="text-xs text-indigo-700 mt-1">上傳或拍照進貨單，AI 會自動將別名（如「久白」）轉換為系統名稱（如「薤白」）並帶入！</p>
         </div>
         <div>
           <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2 text-sm">
             <span v-if="analyzing">🌀 AI 辨識與比對中...</span>
             <span v-else>📷 上傳/拍照進貨單</span>
-            <input type="file" accept="image/*" capture="environment" @change="handleImageUpload" :disabled="analyzing" class="hidden">
+            <input type="file" accept="image/*" @change="handleImageUpload" :disabled="analyzing" class="hidden">
           </label>
         </div>
       </div>
@@ -217,10 +217,9 @@
       </button>
     </div>
 
-    <!-- TAB 3: 歷史異動明細 (手繪手帳風) -->
+    <!-- TAB 3: 歷史異動明細 -->
     <div v-if="currentTab === 'history'" class="bg-[#fffdf9] p-6 rounded-2xl shadow-md border-2 border-amber-900/20 relative">
       
-      <!-- 手繪風頂部標題與篩選列 -->
       <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b-2 border-dashed border-amber-900/20">
         <div>
           <h2 class="text-2xl font-bold text-amber-900 flex items-center gap-2">
@@ -230,7 +229,6 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <!-- 上方選單：進/出/盤點 -->
           <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-amber-900/20 shadow-sm">
             <span class="text-xs font-bold text-amber-900">選單：</span>
             <select v-model="historyFilterType" class="text-sm bg-transparent font-bold text-amber-900 outline-none cursor-pointer">
@@ -241,7 +239,6 @@
             </select>
           </div>
 
-          <!-- 下方選取：日期篩選 -->
           <div class="flex items-center gap-1.5 bg-white px-3 py-1.5 rounded-xl border border-amber-900/20 shadow-sm">
             <span class="text-xs font-bold text-amber-900">時間：</span>
             <select v-model="historyFilterDate" class="text-sm bg-transparent font-bold text-amber-900 outline-none cursor-pointer">
@@ -252,22 +249,17 @@
         </div>
       </div>
 
-      <!-- 手繪風群組顯示區塊 (依照日期分類) -->
       <div class="space-y-6">
         <div v-for="(group, dateStr) in groupedLogs" :key="dateStr" class="relative">
           
-          <!-- 日期標籤 -->
           <div class="inline-block bg-amber-800 text-amber-50 px-4 py-1 rounded-full text-lg font-bold font-mono shadow-sm mb-3">
             📅 {{ dateStr }}
           </div>
 
-          <!-- 仿手繪方框容器 -->
           <div class="bg-white border-2 border-amber-900/30 rounded-2xl p-4 shadow-sm space-y-2">
             <div v-for="log in group" :key="log.id" class="flex flex-wrap items-center p-2.5 hover:bg-amber-50/60 rounded-xl border border-transparent hover:border-amber-900/10 transition gap-x-6 gap-y-2">
               
-              <!-- 左側：品項、儲位與數量 -->
               <div class="flex items-center gap-3">
-                <!-- 類型小標籤 -->
                 <span :class="{
                   'bg-emerald-100 text-emerald-800 border-emerald-300': log.type === '進貨',
                   'bg-rose-100 text-rose-800 border-rose-300': log.type === '出庫' || log.type === '出貨',
@@ -290,7 +282,6 @@
                 </div>
               </div>
 
-              <!-- 右側：效期、經手人與刪除 -->
               <div class="flex items-center gap-3">
                 <span v-if="log.expDate" class="text-xs text-slate-600 font-mono bg-slate-100 px-2 py-1 rounded">
                   效期: {{ log.expDate }}
@@ -310,7 +301,6 @@
 
         </div>
 
-        <!-- 若無資料 -->
         <div v-if="Object.keys(groupedLogs).length === 0" class="text-center py-12 text-amber-900/40 font-bold text-base">
           沒有找到符合條件的歷史異動紀錄
         </div>
@@ -709,30 +699,25 @@
         const submitting = ref(false);
         const analyzing = ref(false);
 
-        // 歷史頁面篩選狀態
         const historyFilterType = ref('ALL');
         const historyFilterDate = ref('ALL');
 
-        // 取得所有曾出現過的日期清單
         const availableDates = computed(() => {
           const dates = dbLogs.value.map(log => log.date || log.timestamp).filter(Boolean);
           return [...new Set(dates)].sort((a, b) => new Date(b) - new Date(a));
         });
 
-        // 根據篩選條件過濾並依照日期分組
         const groupedLogs = computed(() => {
           let filtered = dbLogs.value.filter(log => {
             const logType = log.type || '';
             const logDate = log.date || log.timestamp || '';
 
-            // 類型篩選
             if (historyFilterType.value !== 'ALL') {
               if (historyFilterType.value === '出庫' && !logType.includes('出')) return false;
               if (historyFilterType.value === '盤點' && !logType.includes('盤')) return false;
               if (historyFilterType.value === '進貨' && logType !== '進貨') return false;
             }
 
-            // 日期篩選
             if (historyFilterDate.value !== 'ALL' && logDate !== historyFilterDate.value) {
               return false;
             }
@@ -740,7 +725,6 @@
             return true;
           });
 
-          // 依照日期群組 (Date -> Array of logs)
           const groups = {};
           filtered.forEach(log => {
             const d = log.date || log.timestamp || '未分類日期';
@@ -950,10 +934,26 @@
                 })
               });
               
-              const result = await res.json();
+              const rawText = await res.text();
+              let result;
+              
+              try {
+                result = JSON.parse(rawText);
+              } catch (pErr) {
+                // 若前端解 JSON 失敗，嘗試手動提取
+                let clean = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
+                const firstBracket = clean.search(/[\{\[]/);
+                const lastBracket = Math.max(clean.lastIndexOf('}'), clean.lastIndexOf(']'));
+                if (firstBracket !== -1 && lastBracket !== -1) {
+                  clean = clean.substring(firstBracket, lastBracket + 1);
+                  result = JSON.parse(clean);
+                } else {
+                  throw pErr;
+                }
+              }
 
               if (result.error || result.status === 'error') {
-                alert('Gemini AI 辨識失敗：\n' + JSON.stringify(result.message || result.error));
+                alert('Gemini AI 辨識失敗：\n' + (result.message || result.error));
                 return;
               }
 
@@ -995,7 +995,7 @@
               }
             } catch (err) {
               console.error(err);
-              alert('辨識過程發生連線錯誤：\n' + (err.message || err));
+              alert('辨識過程發生連線錯誤或解析失敗：\n' + (err.message || err));
             } finally {
               analyzing.value = false;
               event.target.value = '';
