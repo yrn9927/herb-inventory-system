@@ -115,14 +115,13 @@
           <h3 class="font-bold text-indigo-900 flex items-center gap-1.5 text-base">
             ✨ AI 貨單/標籤自動辨識（自動對照同義詞/別名）
           </h3>
-          <p class="text-xs text-indigo-700 mt-1">上傳或拍照進貨單，AI 會自動將別名（如「久白」）轉換為系統名稱（如「薤白」）並帶入！</p>
+          <p class="text-xs text-indigo-700 mt-1">拍照上傳進貨單，AI 會自動將別名（如「久白」）轉換為系統名稱（如「薤白」）並帶入！</p>
         </div>
         <div>
           <label class="cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-lg shadow transition flex items-center gap-2 text-sm">
             <span v-if="analyzing">🌀 AI 辨識與比對中...</span>
             <span v-else>📷 上傳/拍照進貨單</span>
-            <!-- 移除 capture="environment"，讓手機/平板可自由選擇相簿或拍照 -->
-            <input type="file" accept="image/*" @change="handleImageUpload" :disabled="analyzing" class="hidden">
+            <input type="file" accept="image/*" capture="environment" @change="handleImageUpload" :disabled="analyzing" class="hidden">
           </label>
         </div>
       </div>
