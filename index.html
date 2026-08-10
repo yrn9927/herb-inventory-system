@@ -51,12 +51,54 @@
             </optgroup>
           </select>
         </div>
-        <div class="flex items-end">
-          <label class="flex items-center gap-2 cursor-pointer bg-amber-50 border border-amber-200 p-2.5 rounded-lg w-full">
-            <input type="checkbox" v-model="onlyLowStock" class="w-4 h-4 text-amber-600 rounded">
-            <span class="text-xs font-bold text-amber-800">⚠️ 僅顯示庫存警告品項 (≤ 5)</span>
-          </label>
+
+        <!-- 🌟 警示狀態複選下拉選單 (Multi-Select Dropdown) -->
+        <div class="relative flex items-end">
+          <!-- 背景遮罩 (點擊選單外區域自動關閉) -->
+          <div v-if="isWarningDropdownOpen" @click="isWarningDropdownOpen = false" class="fixed inset-0 z-10"></div>
+          
+          <div class="w-full relative z-20">
+            <label class="block text-xs font-bold text-gray-600 mb-1">⚠️ 警示狀態篩選（可複選）</label>
+            <button @click="isWarningDropdownOpen = !isWarningDropdownOpen" type="button" class="w-full border p-2 rounded-lg bg-white border-gray-300 text-left text-xs font-bold flex justify-between items-center focus:ring-2 focus:ring-emerald-400 min-h-[38px]">
+              <div class="flex flex-wrap gap-1 items-center overflow-hidden">
+                <span v-if="selectedWarnings.length === 0" class="text-gray-400 font-normal">顯示全部品項 (選擇警示條件)</span>
+                <template v-else>
+                  <span v-if="selectedWarnings.includes('LOW_STOCK')" class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[11px] font-bold">⚠️ 低數量</span>
+                  <span v-if="selectedWarnings.includes('EXP_6M')" class="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-[11px] font-bold">🟡 6個月內</span>
+                  <span v-if="selectedWarnings.includes('EXP_3M')" class="bg-orange-100 text-orange-800 px-1.5 py-0.5 rounded text-[11px] font-bold">🟠 3個月內</span>
+                  <span v-if="selectedWarnings.includes('EXPIRED')" class="bg-red-500 text-white px-1.5 py-0.5 rounded text-[11px] font-bold">🔴 已過期</span>
+                </template>
+              </div>
+              <span class="ml-2 text-gray-400 text-xs">▾</span>
+            </button>
+
+            <!-- 下拉選單清單 -->
+            <div v-if="isWarningDropdownOpen" class="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl p-2 space-y-1 z-30">
+              <label class="flex items-center gap-2 p-1.5 hover:bg-amber-50 rounded cursor-pointer text-xs font-bold text-gray-700">
+                <input type="checkbox" value="LOW_STOCK" v-model="selectedWarnings" class="w-4 h-4 text-emerald-600 rounded">
+                <span>⚠️ 低數量提醒 (≤ 5)</span>
+              </label>
+              <label class="flex items-center gap-2 p-1.5 hover:bg-amber-50 rounded cursor-pointer text-xs font-bold text-gray-700">
+                <input type="checkbox" value="EXP_6M" v-model="selectedWarnings" class="w-4 h-4 text-emerald-600 rounded">
+                <span>🟡 效期半年內 (180天內)</span>
+              </label>
+              <label class="flex items-center gap-2 p-1.5 hover:bg-amber-50 rounded cursor-pointer text-xs font-bold text-gray-700">
+                <input type="checkbox" value="EXP_3M" v-model="selectedWarnings" class="w-4 h-4 text-emerald-600 rounded">
+                <span>🟠 效期 3 個月內 (90天內)</span>
+              </label>
+              <label class="flex items-center gap-2 p-1.5 hover:bg-amber-50 rounded cursor-pointer text-xs font-bold text-gray-700">
+                <input type="checkbox" value="EXPIRED" v-model="selectedWarnings" class="w-4 h-4 text-emerald-600 rounded">
+                <span>🔴 已過期</span>
+              </label>
+              
+              <div class="border-t pt-1.5 mt-1 flex justify-between items-center text-[11px] px-1">
+                <span class="text-gray-400">已選 {{ selectedWarnings.length }} 項</span>
+                <button @click="selectedWarnings = []" type="button" class="text-rose-600 hover:text-rose-800 font-bold">一鍵重置</button>
+              </div>
+            </div>
+          </div>
         </div>
+
       </div>
 
       <div class="flex justify-between items-center mb-4 text-sm text-gray-600 font-medium">
@@ -71,7 +113,7 @@
               <th class="p-2.5 w-20 text-center">儲位</th>
               <th class="p-2.5 w-48">藥材名稱 / 別稱</th>
               <th class="p-2.5 w-32 text-right">當前庫存</th>
-              <th class="p-2.5 text-center">有效期限與批次</th>
+              <th class="p-2.5 text-center">有效期限與批次（🟡半年內到期）</th>
               <th class="p-2.5 w-24 text-center">狀態</th>
             </tr>
           </thead>
@@ -87,7 +129,7 @@
               </td>
               <td class="p-2.5 text-center font-mono">
                 <div v-if="item.expList && item.expList.length > 0" class="flex flex-wrap justify-center gap-1.5">
-                  <span v-for="exp in item.expList" :key="exp.rawDate" :class="getExpStatusClass(exp.rawDate)" class="px-2.5 py-1 rounded-md font-bold text-sm shadow-sm inline-block">
+                  <span v-for="exp in item.expList" :key="exp.rawDate" :class="getExpStatusClass(exp.rawDate)" class="px-2.5 py-1 rounded-md font-bold text-sm inline-block transition-all">
                     {{ exp.formattedText }}
                   </span>
                 </div>
@@ -106,7 +148,7 @@
       </div>
     </div>
 
-    <!-- TAB 2: 庫存異動登記（含 AI 辨識 & 多效期支援） -->
+    <!-- TAB 2: 庫存異動登記 -->
     <div v-if="currentTab === 'log'" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
       
       <!-- AI 貨單辨識區塊 -->
@@ -368,7 +410,7 @@
       { location: "5-2", name: "栝樓仁", alias: "榧仁" },
       { location: "5-3", name: "辛夷", alias: "" },
       { location: "5-4", name: "丹參", alias: "" },
-      { location: "5-5", name: "炒白芍", alias: "白芍炒" },
+      { location: "5-5", name: "炒白芍", alias: "" },
       { location: "5-6", name: "決明子", alias: "炒草決" },
       { location: "5-7", name: "蘆根", alias: "" },
       { location: "5-8", name: "地龍", alias: "" },
@@ -386,7 +428,7 @@
       { location: "6-8", name: "枳實", alias: "" },
       { location: "6-9", name: "黃連", alias: "" },
       { location: "6-10", name: "一條根", alias: "千斤拔" },
-      { location: "6-11", name: "生白芍", alias: "白芍" },
+      { location: "6-11", name: "生白芍", alias: "" },
       { location: "6-12", name: "牡丹皮", alias: "銅陵鳳丹皮" },
       { location: "7-1", name: "射干", alias: "" },
       { location: "7-2", name: "代赭石", alias: "" },
@@ -597,7 +639,7 @@
       { location: "R-11", name: "肉蓯蓉", alias: "" },
       { location: "R-12", name: "枸杞", alias: "" },
       { location: "R-13", name: "酸棗仁", alias: "" },
-      { location: "R-14", name: "薏苡仁", alias: "糯苡米" },
+      { location: "R-14", name: "薏苡仁", alias: "" },
       { location: "R-15", name: "白果(2)", alias: "" },
       { location: "R-16", name: "黃耆", alias: "" },
       { location: "R-17", name: "天門冬", alias: "" },
@@ -624,7 +666,7 @@
       { location: "R-38", name: "白蔘", alias: "" },
       { location: "R-39", name: "山茱萸", alias: "" },
       { location: "R-40", name: "補骨脂", alias: "" },
-      { location: "R-41", name: "澤瀉", alias: "建舍片" },
+      { location: "R-41", name: "澤瀉", alias: "" },
       { location: "R-42", name: "龍眼肉", alias: "" },
       { location: "R-43", name: "菊花(10)", alias: "" },
       { location: "R-44", name: "黃精", alias: "" },
@@ -637,7 +679,7 @@
       { location: "R-51", name: "當歸", alias: "" },
       { location: "R-52", name: "當歸尾", alias: "" },
       { location: "R-53", name: "無籽紅棗", alias: "" },
-      { location: "R-54", name: "紅棗", alias: "大棗" },
+      { location: "R-54", name: "紅棗", alias: "" },
       { location: "R-55", name: "延胡索", alias: "" },
       { location: "R-56", name: "蓮子心", alias: "" },
       { location: "R-57", name: "麥芽糖", alias: "" },
@@ -681,7 +723,10 @@
         const currentTab = ref('overview');
         const searchKeyword = ref('');
         const selectedCabinet = ref('ALL');
-        const onlyLowStock = ref(false);
+        
+        // 🌟 新增：警示狀態複選陣列與選單開關狀態
+        const selectedWarnings = ref([]);
+        const isWarningDropdownOpen = ref(false);
 
         const logFormHeader = reactive({
           date: new Date().toISOString().split('T')[0],
@@ -765,15 +810,34 @@
             let totalQty = 0;
             const expBatchMap = {};
 
-            const herbLogs = dbLogs.value.filter(log => log.name === herb.name && log.location === herb.location);
+            const herbLogs = dbLogs.value
+              .filter(log => log.name === herb.name && log.location === herb.location)
+              .slice()
+              .sort((a, b) => {
+                const dateA = a.date || a.timestamp || '';
+                const dateB = b.date || b.timestamp || '';
+                if (dateA !== dateB) return dateA.localeCompare(dateB);
+                const idA = a.id || '';
+                const idB = b.id || '';
+                return idA.localeCompare(idB);
+              });
+
+            let currentStocktakeBatch = null;
 
             herbLogs.forEach(log => {
               const logQty = Number(log.qty) || 0;
               const rawExp = log.expDate ? log.expDate.trim() : '未填效期';
+              const logDate = log.date || log.timestamp || '';
+
+              let submissionTime = '';
+              if (log.id && log.id.startsWith('INV_')) {
+                submissionTime = log.id.split('_')[1] || '';
+              }
 
               if (log.type === '進貨') {
                 totalQty += logQty;
                 expBatchMap[rawExp] = (expBatchMap[rawExp] || 0) + logQty;
+                currentStocktakeBatch = null;
               } else if (log.type === '出庫' || log.type === '出貨') {
                 totalQty -= logQty;
                 let deductQty = logQty;
@@ -797,10 +861,19 @@
                     }
                   }
                 }
+                currentStocktakeBatch = null;
               } else if (log.type === '盤點' || log.type === '盤點修正') {
-                totalQty = logQty;
-                Object.keys(expBatchMap).forEach(k => expBatchMap[k] = 0);
-                expBatchMap[rawExp] = logQty;
+                const sessionKey = submissionTime ? `${logDate}_${submissionTime}` : `${logDate}_${log.operator || ''}_stocktake`;
+
+                if (currentStocktakeBatch === sessionKey) {
+                  totalQty += logQty;
+                  expBatchMap[rawExp] = (expBatchMap[rawExp] || 0) + logQty;
+                } else {
+                  totalQty = logQty;
+                  Object.keys(expBatchMap).forEach(k => expBatchMap[k] = 0);
+                  expBatchMap[rawExp] = logQty;
+                  currentStocktakeBatch = sessionKey;
+                }
               }
             });
 
@@ -835,16 +908,60 @@
         });
 
         const getExpStatusClass = (expDateStr) => {
-          if (!expDateStr || expDateStr === '未填效期') return 'bg-gray-100 text-gray-600';
-          const today = new Date();
-          const expDate = new Date(expDateStr);
-          const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+          if (!expDateStr || expDateStr === '未填效期') {
+            return 'bg-gray-100 text-gray-600 border border-gray-200';
+          }
 
-          if (diffDays < 0) return 'bg-red-100 text-red-700 font-bold';
-          if (diffDays <= 30) return 'bg-amber-100 text-amber-800 font-bold';
-          return 'bg-slate-100 text-slate-700 border border-slate-200';
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          const expDate = new Date(expDateStr);
+          expDate.setHours(0, 0, 0, 0);
+
+          if (isNaN(expDate.getTime())) {
+            return 'bg-gray-100 text-gray-600 border border-gray-200';
+          }
+
+          const sixMonthsLater = new Date(today);
+          sixMonthsLater.setMonth(today.getMonth() + 6);
+
+          if (expDate < today) {
+            return 'bg-red-500 text-white border border-red-600 font-bold shadow-sm';
+          } else if (expDate <= sixMonthsLater) {
+            return 'bg-yellow-300 text-yellow-950 border border-yellow-400 font-bold shadow-sm';
+          } else {
+            return 'bg-slate-100 text-slate-700 border border-slate-200';
+          }
         };
 
+        // 🌟 新增：檢查單一商品是否符合特定警示條件（庫存/效期）
+        const checkItemWarning = (item, warningType) => {
+          if (warningType === 'LOW_STOCK') {
+            return item.currentQty <= 5;
+          }
+
+          if (!item.expList || item.expList.length === 0) return false;
+
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          return item.expList.some(exp => {
+            if (!exp.rawDate || exp.rawDate === '未填效期') return false;
+            const expDate = new Date(exp.rawDate);
+            if (isNaN(expDate.getTime())) return false;
+            expDate.setHours(0, 0, 0, 0);
+
+            const diffTime = expDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (warningType === 'EXPIRED') return diffDays < 0;
+            if (warningType === 'EXP_3M') return diffDays >= 0 && diffDays <= 90;
+            if (warningType === 'EXP_6M') return diffDays >= 0 && diffDays <= 180;
+            return false;
+          });
+        };
+
+        // 🌟 修改：支援複選多條件 OR 聯集篩選
         const filteredInventory = computed(() => {
           return inventoryList.value.filter(item => {
             const matchKw = !searchKeyword.value || 
@@ -859,8 +976,12 @@
               else matchCab = (item.location.split('-')[0] === selectedCabinet.value);
             }
 
-            const matchLow = !onlyLowStock.value || item.currentQty <= 5;
-            return matchKw && matchCab && matchLow;
+            let matchWarn = true;
+            if (selectedWarnings.value.length > 0) {
+              matchWarn = selectedWarnings.value.some(w => checkItemWarning(item, w));
+            }
+
+            return matchKw && matchCab && matchWarn;
           });
         });
 
@@ -940,7 +1061,6 @@
               try {
                 result = JSON.parse(rawText);
               } catch (pErr) {
-                // 若前端解 JSON 失敗，嘗試手動提取
                 let clean = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
                 const firstBracket = clean.search(/[\{\[]/);
                 const lastBracket = Math.max(clean.lastIndexOf('}'), clean.lastIndexOf(']'));
@@ -1005,16 +1125,17 @@
 
         const submitBatchLogs = async () => {
           const newEntries = [];
+          const now = Date.now();
           
           for (const key in itemBatchInputs) {
             const batches = itemBatchInputs[key];
             const [loc, name] = key.split('|');
 
-            batches.forEach(b => {
+            batches.forEach((b, idx) => {
               const qty = Number(b.qty);
               if (qty && qty > 0) {
                 newEntries.push({
-                  id: 'INV_' + Date.now() + '_' + Math.floor(Math.random()*10000),
+                  id: 'INV_' + now + '_' + Math.floor(Math.random()*10000) + '_' + idx,
                   date: logFormHeader.date,
                   type: logFormHeader.type,
                   location: loc,
@@ -1062,7 +1183,7 @@
         onMounted(() => { fetchLogs(); });
 
         return {
-          currentTab, searchKeyword, selectedCabinet, onlyLowStock,
+          currentTab, searchKeyword, selectedCabinet, selectedWarnings, isWarningDropdownOpen,
           logFormHeader, cardSearchKeyword, cardFilteredInventory,
           onlyRecognized, hasRecognizedItems, recognizedCount,
           getItemBatches, addBatchRow, removeBatchRow, getItemTotalQty,
