@@ -52,9 +52,8 @@
           </select>
         </div>
 
-        <!-- 🌟 警示狀態複選下拉選單 (Multi-Select Dropdown) -->
+        <!-- 警示狀態複選下拉選單 (Multi-Select Dropdown) -->
         <div class="relative flex items-end">
-          <!-- 背景遮罩 (點擊選單外區域自動關閉) -->
           <div v-if="isWarningDropdownOpen" @click="isWarningDropdownOpen = false" class="fixed inset-0 z-10"></div>
           
           <div class="w-full relative z-20">
@@ -72,7 +71,6 @@
               <span class="ml-2 text-gray-400 text-xs">▾</span>
             </button>
 
-            <!-- 下拉選單清單 -->
             <div v-if="isWarningDropdownOpen" class="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl p-2 space-y-1 z-30">
               <label class="flex items-center gap-2 p-1.5 hover:bg-amber-50 rounded cursor-pointer text-xs font-bold text-gray-700">
                 <input type="checkbox" value="LOW_STOCK" v-model="selectedWarnings" class="w-4 h-4 text-emerald-600 rounded">
@@ -690,6 +688,15 @@
       { location: "R-62", name: "全蠍", alias: "" }
     ];
 
+    // 💡 取得在地當前日期 (YYYY-MM-DD)，避開 UTC 時區造成的少一天問題
+    const getTodayString = () => {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     function compressImage(file, maxWidth, quality, callback) {
       var reader = new FileReader();
       reader.onload = function(e) {
@@ -724,12 +731,11 @@
         const searchKeyword = ref('');
         const selectedCabinet = ref('ALL');
         
-        // 🌟 新增：警示狀態複選陣列與選單開關狀態
         const selectedWarnings = ref([]);
         const isWarningDropdownOpen = ref(false);
 
         const logFormHeader = reactive({
-          date: new Date().toISOString().split('T')[0],
+          date: getTodayString(), // 👈 修正處：使用在地日期
           type: '進貨',
           operator: '',
           note: ''
@@ -887,14 +893,9 @@
             sortedExpKeys.forEach(expKey => {
               const batchQty = expBatchMap[expKey];
               if (batchQty > 0) {
-                let cleanDate = expKey;
-                if (expKey !== '未填效期') {
-                  cleanDate = expKey.replace(/-/g, '');
-                }
-                
                 expList.push({
                   rawDate: expKey,
-                  formattedText: `${cleanDate}*${batchQty}`
+                  formattedText: `${expKey}*${batchQty}`
                 });
               }
             });
@@ -934,7 +935,6 @@
           }
         };
 
-        // 🌟 新增：檢查單一商品是否符合特定警示條件（庫存/效期）
         const checkItemWarning = (item, warningType) => {
           if (warningType === 'LOW_STOCK') {
             return item.currentQty <= 5;
@@ -961,7 +961,6 @@
           });
         };
 
-        // 🌟 修改：支援複選多條件 OR 聯集篩選
         const filteredInventory = computed(() => {
           return inventoryList.value.filter(item => {
             const matchKw = !searchKeyword.value || 
@@ -1161,6 +1160,7 @@
               itemBatchInputs[key] = [{ qty: null, expDate: '' }];
             }
             logFormHeader.note = '';
+            logFormHeader.date = getTodayString(); // 👈 修正處：送出後重置為當日在地日期
             onlyRecognized.value = false;
             
             alert(`成功發送 ${newEntries.length} 筆異動紀錄！`);
