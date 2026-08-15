@@ -215,35 +215,54 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             
             <div v-for="item in cardFilteredInventory" :key="item.location + item.name" 
-                 class="bg-white border rounded-xl p-3 shadow-sm flex flex-col justify-between hover:border-emerald-300 transition" 
-                 :class="{'border-indigo-400 bg-indigo-50/20': getItemTotalQty(item.location + '|' + item.name) > 0}">
-              
-              <div class="flex items-center justify-between mb-2">
-                <div>
-                  <div class="text-xs font-mono font-bold text-gray-400">{{ item.location }}</div>
-                  <div class="font-bold text-slate-800 text-base leading-tight">{{ item.name }}</div>
-                  <div class="text-[11px] text-gray-400 mt-0.5">目前庫存：{{ item.currentQty }}</div>
-                </div>
-                <button @click="addBatchRow(item.location + '|' + item.name)" class="text-[11px] bg-slate-100 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200 transition">
-                  + 新增效期
-                </button>
-              </div>
+     class="bg-white border rounded-xl p-3 shadow-sm flex flex-col justify-between hover:border-emerald-300 transition" 
+     :class="{'border-indigo-400 bg-indigo-50/20': getItemTotalQty(item.location + '|' + item.name) > 0}">
+  
+  <div class="flex items-center justify-between mb-2">
+    <div>
+      <div class="text-xs font-mono font-bold text-gray-400">{{ item.location }}</div>
+      <div class="font-bold text-slate-800 text-base leading-tight">{{ item.name }}</div>
+      <div class="text-[11px] text-gray-400 mt-0.5">目前庫存：{{ item.currentQty }}</div>
+    </div>
 
-              <div class="space-y-2 pt-2 border-t border-dashed border-gray-200">
-                <div v-for="(row, idx) in getItemBatches(item.location + '|' + item.name)" :key="idx" class="flex items-center gap-2 bg-slate-50/70 p-1.5 rounded-lg border border-gray-100">
-                  <div class="w-20">
-                    <input type="number" min="0" placeholder="數量" v-model.number="row.qty" class="w-full border rounded p-1 text-center font-bold text-slate-800 focus:ring-1 focus:ring-emerald-400 text-sm">
-                  </div>
-                  <div class="flex-1">
-                    <input type="date" v-model="row.expDate" class="w-full border rounded p-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-emerald-400">
-                  </div>
-                  <button v-if="getItemBatches(item.location + '|' + item.name).length > 1" @click="removeBatchRow(item.location + '|' + item.name, idx)" class="text-gray-400 hover:text-red-500 font-bold px-1 text-xs">
-                    ❌
-                  </button>
-                </div>
-              </div>
+    <!-- 根據異動類型動態顯示按鈕文字 -->
+    <button @click="addBatchRow(item.location + '|' + item.name)" class="text-[11px] bg-slate-100 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded border border-indigo-200 transition">
+      {{ logFormHeader.type === '出庫' ? '+ 扣庫批次' : '+ 新增效期' }}
+    </button>
+  </div>
 
-            </div>
+  <div class="space-y-2 pt-2 border-t border-dashed border-gray-200">
+    <div v-for="(row, idx) in getItemBatches(item.location + '|' + item.name)" :key="idx" class="flex items-center gap-2 bg-slate-50/70 p-1.5 rounded-lg border border-gray-100">
+      
+      <!-- 扣庫/進貨數量 -->
+      <div class="w-20">
+        <input type="number" min="0" placeholder="數量" v-model.number="row.qty" class="w-full border rounded p-1 text-center font-bold text-slate-800 focus:ring-1 focus:ring-emerald-400 text-sm">
+      </div>
+
+      <!-- 效期 / 批號選擇器 -->
+      <div class="flex-1">
+        <!-- 【出庫時】：顯示目前現有批號的下拉選單 -->
+        <select v-if="logFormHeader.type === '出庫'" v-model="row.expDate" class="w-full border rounded p-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-emerald-400 font-medium">
+          <option value="">-- 請選擇要扣除的批號 --</option>
+          <option v-for="exp in item.expList" :key="exp.rawDate" :value="exp.rawDate">
+            📅 {{ exp.formattedText }}
+          </option>
+          <option value="未填效期">未填效期</option>
+        </select>
+
+        <!-- 【進貨/盤點時】：保持原有的日期選擇器 -->
+        <input v-else type="date" v-model="row.expDate" class="w-full border rounded p-1 text-xs bg-white text-gray-700 focus:ring-1 focus:ring-emerald-400">
+      </div>
+
+      <!-- 刪除多餘批次按鈕 -->
+      <button v-if="getItemBatches(item.location + '|' + item.name).length > 1" @click="removeBatchRow(item.location + '|' + item.name, idx)" class="text-gray-400 hover:text-red-500 font-bold px-1 text-xs">
+        ❌
+      </button>
+
+    </div>
+  </div>
+
+</div>
 
             <div v-if="cardFilteredInventory.length === 0" class="col-span-full text-center py-8 text-gray-400">
               查無符合條件的藥材項目
