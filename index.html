@@ -861,7 +861,7 @@
 
               if (log.type === '進貨') {
                 totalQty += logQty;
-                expBatchMap[rawExp] = (expBatchMap[rawExp] || 0) + logQty;
+                expBatchMap[rawExp] = Number(((expBatchMap[rawExp] || 0) + logQty).toFixed(4));
                 currentStocktakeBatch = null;
               } else if (log.type === '出庫' || log.type === '出貨') {
                 totalQty -= logQty;
@@ -875,13 +875,14 @@
 
                 for (const expKey of sortedExpKeys) {
                   if (deductQty <= 0) break;
-                  const currentExpQty = expBatchMap[expKey];
+                  const currentExpQty = expBatchMap[expKey] || 0;
                   if (currentExpQty > 0) {
                     if (currentExpQty >= deductQty) {
-                      expBatchMap[expKey] -= deductQty;
+                      // 修正點：加上 .toFixed(4) 避免浮點數精確度誤差
+                      expBatchMap[expKey] = Number((currentExpQty - deductQty).toFixed(4));
                       deductQty = 0;
                     } else {
-                      deductQty -= currentExpQty;
+                      deductQty = Number((deductQty - currentExpQty).toFixed(4));
                       expBatchMap[expKey] = 0;
                     }
                   }
@@ -892,7 +893,7 @@
 
                 if (currentStocktakeBatch === sessionKey) {
                   totalQty += logQty;
-                  expBatchMap[rawExp] = (expBatchMap[rawExp] || 0) + logQty;
+                  expBatchMap[rawExp] = Number(((expBatchMap[rawExp] || 0) + logQty).toFixed(4));
                 } else {
                   totalQty = logQty;
                   Object.keys(expBatchMap).forEach(k => expBatchMap[k] = 0);
@@ -902,6 +903,9 @@
               }
             });
 
+            // 修正總庫存小數點誤差
+            totalQty = Number(totalQty.toFixed(4));
+
             const expList = [];
             const sortedExpKeys = Object.keys(expBatchMap).sort((a, b) => {
               if (a === '未填效期') return 1;
@@ -910,7 +914,8 @@
             });
 
             sortedExpKeys.forEach(expKey => {
-              const batchQty = expBatchMap[expKey];
+              // 修正點：自動去除小數點多餘的 0，呈現乾淨數值
+              const batchQty = Number(expBatchMap[expKey].toFixed(4));
               if (batchQty > 0) {
                 expList.push({
                   rawDate: expKey,
